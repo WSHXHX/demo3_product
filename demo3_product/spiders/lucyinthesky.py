@@ -16,39 +16,9 @@ from demo3_product.items import Demo3ProductItem
 from demo3_product.settings import POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DBNAME
 
 
-def read_line():
-    conn = psycopg2.connect(
-        host=POSTGRES_HOST,
-        dbname=POSTGRES_DBNAME,
-        user=POSTGRES_USER,
-        password=POSTGRES_PASSWORD
-    )
-    conn.autocommit = False
-    cur = conn.cursor()
-
-    cur.execute("""
-                UPDATE spider_temp
-                SET status = 10
-                WHERE id IN (
-                    SELECT id FROM spider_temp
-                    WHERE status = 1 AND domain='lucyinthesky.com'
-                    LIMIT 100
-                    FOR UPDATE SKIP LOCKED
-                )
-                RETURNING id, link, tags, referer;
-            """)
-    rows = cur.fetchall()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return rows
-
-
 class LucyintheskySpider(RedisSpider):
     name = "lucyinthesky"
     task_id = 5
-    offset = 0
-    is_finished = False
     redis_key = "lucyinthesky:start_urls"
 
     allowed_domains = ["www.lucyinthesky.com", "media-img.lucyinthesky.com", "api.lucyinthesky.com"]
