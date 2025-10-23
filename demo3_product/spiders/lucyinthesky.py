@@ -15,13 +15,6 @@ from scrapy_redis.spiders import RedisSpider
 from demo3_product.items import Demo3ProductItem
 from demo3_product.settings import POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DBNAME
 
-def get_data(script_data):
-    store = script_data['props']['pageProps']['store']
-    for _v in store.values():
-        if type(_v) == dict and 'name' in _v:
-            return _v
-
-
 
 def read_line():
     conn = psycopg2.connect(
