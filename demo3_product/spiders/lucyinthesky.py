@@ -1,19 +1,11 @@
 import json
 import time
 import itertools
-from itertools import product
-
-import psycopg2
-from lxml import html
 
 import scrapy
-from scrapy import signals
-from scrapy.exceptions import DontCloseSpider
-
 from scrapy_redis.spiders import RedisSpider
 
 from demo3_product.items import Demo3ProductItem
-from demo3_product.settings import POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DBNAME
 
 
 class LucyintheskySpider(RedisSpider):
