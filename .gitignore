@@ -1,0 +1,31 @@
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*.pyo
+
+# 虚拟环境
+venv/
+env/
+
+# 临时文件或日志
+*.log
+*.tmp
+.DS_Store
+
+# IDE 配置
+.vscode/
+.idea/
+
+# 数据、爬虫缓存
+data/
+cache/
+*.sqlite3
+
+# Scrapy 生成的文件
+*.job
+*.jl
+*.csv
+
+# 特定文件夹
+spider_temp/
+output/
