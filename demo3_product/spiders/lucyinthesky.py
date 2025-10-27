@@ -10,6 +10,7 @@ from demo3_product.items import Demo3ProductItem
 
 class LucyintheskySpider(RedisSpider):
     name = "lucyinthesky"
+    domain = "lucyinthesky.com"
     task_id = 5
     redis_key = "lucyinthesky:start_urls"
 
@@ -20,11 +21,18 @@ class LucyintheskySpider(RedisSpider):
         scrapy-redis 默认只支持 URL 字符串
         我们重写这个方法，让它能解析 JSON
         """
+        if isinstance(data, bytes):
+            try:
+                data = data.decode("utf-8")
+            except UnicodeDecodeError:
+                # 不能 UTF-8 解码 → 当作普通 URL 处理
+                return scrapy.Request(url=data.decode("latin-1"), callback=self.parse)
+
         try:
             task = json.loads(data)
         except json.JSONDecodeError:
-            # 如果不是 JSON，就当作普通 URL 处理
-            return scrapy.Request(url=data.decode(), callback=self.parse)
+            # 如果不是 JSON，就当成 URL 字符串
+            return scrapy.Request(url=data, callback=self.parse)
 
         url = task.get("url")
         headers = task.get("headers", {})

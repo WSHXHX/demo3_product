@@ -279,3 +279,45 @@ class UpdateImagesPipline:
             self.conn.rollback()
 
         return item
+
+
+class UpdateTaskTableProductNumber:
+
+    def __init__(self, host, port, user, password, database):
+        self.host = host
+        self.port = port
+        self.user = user
+        self.password = password
+        self.database = database
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            host=crawler.settings.get("MYSQL_HOST"),
+            port=crawler.settings.getint("MYSQL_PORT"),
+            user=crawler.settings.get("MYSQL_USER"),
+            password=crawler.settings.get("MYSQL_PASSWORD"),
+            database=crawler.settings.get("MYSQL_DB"),
+        )
+
+    def process_item(self, item, spider):
+        return item
+
+    def close_spider(self, spider):
+        conn = pymysql.connect(
+            host=self.host,
+            port=self.port,
+            user=self.user,
+            password=self.password,
+            database=self.database,
+            charset="utf8mb4"
+        )
+        cursor = conn.cursor()
+        cursor.execute("SELECT count(*) FROM collection_products WHERE domain=%s;", (spider.domain,))
+        ids = cursor.fetchall()
+        pnums = ids[0][0]
+        cursor.execute("UPDATE collection_bath_tasks SET quantity=%s WHERE rid=%s;",
+                       (pnums, spider.task_id))
+        conn.commit()
+        cursor.close()
+        conn.close()

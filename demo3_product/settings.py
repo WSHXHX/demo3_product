@@ -65,6 +65,7 @@ ITEM_PIPELINES = {
     # "demo3_product.pipelines.UpdateImagesPipline": 295,
     "demo3_product.pipelines.MySQLPipeline": 295,
     "demo3_product.pipelines.ElasticsearchPipeline": 300,
+    "demo3_product.pipelines.UpdateTaskTableProductNumber": 305,
     # "demo3_product.pipelines.PostgresUpdatePipeline": 305,
 }
 

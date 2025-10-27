@@ -45,6 +45,7 @@ def read_line():
 
 class FashionnovaSpider(scrapy.Spider):
     name = "fashionnova"
+    domain = "fashionnova.com"
     offset = 0
     is_finished = False
     allowed_domains = ["www.fashionnova.com"]

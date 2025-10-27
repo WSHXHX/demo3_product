@@ -12,6 +12,7 @@ from demo3_product.items import Demo3ProductItem
 
 class HelloMollySpider(RedisSpider):
     name = "hellomolly"
+    domain = "hellomolly.com"
     task_id = 6
     redis_key = "hellomolly:start_urls"
     allowed_domains = ["www.hellomolly.com", "searchspring.io"]
