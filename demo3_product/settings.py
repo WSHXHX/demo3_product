@@ -65,7 +65,7 @@ ITEM_PIPELINES = {
     # "demo3_product.pipelines.UpdateImagesPipline": 295,
     "demo3_product.pipelines.MySQLPipeline": 295,
     "demo3_product.pipelines.ElasticsearchPipeline": 300,
-    "demo3_product.pipelines.PostgresUpdatePipeline": 305,
+    # "demo3_product.pipelines.PostgresUpdatePipeline": 305,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -108,13 +108,17 @@ ES_PASS = "dnabYdQtr9s_rvgH6dGD"
 INDEX_NAME = "product_index"
 
 POSTGRES_HOST = '107.150.40.2'
+POSTGRES_PASSWORD = 'S4ssbeXn6zeDs8ij'
 POSTGRES_PORT = 5432
 POSTGRES_USER = 'postgres'
-POSTGRES_PASSWORD = 'S4ssbeXn6zeDs8ij'
 POSTGRES_DBNAME = 'postgres'
 
 
 # redis
+REDIS_ENCODING = None
+REDIS_DECODE_RESPONSES = False
+
+
 # 使用 scrapy-redis 的调度器
 SCHEDULER = "scrapy_redis.scheduler.Scheduler"
 
@@ -129,7 +133,7 @@ REDIS_HOST = '107.150.40.2'
 REDIS_PORT = 6379
 REDIS_PARAMS = {
     'password': 'pFKfclD2rU$3lib@6',
-    'decode_responses': True,
+    'decode_responses': False,
 }
 
 # 可选：防止爬虫重复抓取时清空队列

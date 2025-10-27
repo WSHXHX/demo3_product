@@ -5,13 +5,15 @@ import time
 
 
 #
-SPIDER_NAME = "lucyinthesky"
+SPIDER_NAME = "hellomolly"
 
 # PostgreSQL 配置
-POSTGRES_HOST = "107.150.40.2"
+# POSTGRES_HOST = "107.150.40.2"
+# POSTGRES_PASSWORD = "S4ssbeXn6zeDs8ij"
+POSTGRES_HOST = "192.168.1.32"
+POSTGRES_PASSWORD = "0000"
 POSTGRES_DBNAME = "postgres"
 POSTGRES_USER = "postgres"
-POSTGRES_PASSWORD = "S4ssbeXn6zeDs8ij"
 
 # Redis 配置
 REDIS_HOST = "107.150.40.2"
@@ -20,7 +22,7 @@ REDIS_PASSWORD = "pFKfclD2rU$3lib@6"
 REDIS_KEY = f"{SPIDER_NAME}:start_urls"
 
 
-def read_line():
+def read_line(limit=100):
     """
     从 PostgreSQL 取出 100 条任务，更新状态为 10，并返回 (id, link, tags, referer)
     """
@@ -38,12 +40,12 @@ def read_line():
         SET status = 10
         WHERE id IN (
             SELECT id FROM spider_temp
-            WHERE status = 1 AND domain='%s'
-            LIMIT 100
+            WHERE status = 1 AND domain=%s
+            LIMIT %s
             FOR UPDATE SKIP LOCKED
         )
         RETURNING id, link, tags, referer;
-    """, (SPIDER_NAME,))
+    """, (SPIDER_NAME, limit))
     rows = cur.fetchall()
     conn.commit()
     cur.close()
@@ -54,7 +56,7 @@ def push_to_redis(rows):
     """
     把任务推送到 Redis 队列（scrapy-redis）
     """
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, decode_responses=True)
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
     count = 0
 
     for id_, link, tags, referer in rows:
