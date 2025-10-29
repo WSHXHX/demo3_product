@@ -316,7 +316,7 @@ class UpdateTaskTableProductNumber:
         cursor.execute("SELECT count(*) FROM collection_products WHERE domain=%s;", (spider.domain,))
         ids = cursor.fetchall()
         pnums = ids[0][0]
-        cursor.execute("UPDATE collection_bath_tasks SET quantity=%s WHERE rid=%s;",
+        cursor.execute("UPDATE collection_bath_tasks SET quantity=%s, status=5 WHERE rid=%s;",
                        (pnums, spider.task_id))
         conn.commit()
         cursor.close()
