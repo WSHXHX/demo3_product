@@ -60,7 +60,7 @@ class HelloMollySpider(RedisSpider):
                 script_data = json.loads(script[24:-1])
                 break
             except json.JSONDecodeError as e:
-                self.logger.error(f"JSON 解析失败: {e}")
+                pass
         else:
             self.logger.error(f"没找到数据: {response.url}")
             return
