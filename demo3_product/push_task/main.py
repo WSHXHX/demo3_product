@@ -5,12 +5,13 @@ import time
 
 
 #
-SPIDER_NAME = "hellomolly"
+SPIDER_NAME = "boohoo"
+limittt = 1
 
 # PostgreSQL 配置
 # POSTGRES_HOST = "107.150.40.2"
 # POSTGRES_PASSWORD = "S4ssbeXn6zeDs8ij"
-POSTGRES_HOST = "192.168.1.32"
+POSTGRES_HOST = "192.168.1.9"
 POSTGRES_PASSWORD = "0000"
 POSTGRES_DBNAME = "postgres"
 POSTGRES_USER = "postgres"
@@ -82,13 +83,15 @@ def main():
     主流程：循环读取数据库任务并推送到 Redis
     """
     while True:
-        rows = read_line()
+        rows = read_line(limittt)
         if not rows:
             print("✅ 已推送完成")
             time.sleep(30)
             continue
         push_to_redis(rows)
         time.sleep(2)  # 防止数据库压力过大
+        if limittt == 1:
+            break
 
 
 if __name__ == "__main__":
