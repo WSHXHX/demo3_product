@@ -5,8 +5,8 @@ import time
 
 
 #
-SPIDER_NAME = "boohoo"
-limittt = 100
+SPIDER_NAME = "prettylittlething"
+limittt = 1
 
 # PostgreSQL 配置
 # POSTGRES_HOST = "107.150.40.2"
@@ -87,7 +87,7 @@ def main():
         if not rows:
             print("✅ 已推送完成")
             time.sleep(30)
-            continue
+            break
         push_to_redis(rows)
         time.sleep(2)  # 防止数据库压力过大
         if limittt == 1:
