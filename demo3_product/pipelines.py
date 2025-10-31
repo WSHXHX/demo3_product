@@ -313,11 +313,13 @@ class UpdateTaskTableProductNumber:
             charset="utf8mb4"
         )
         cursor = conn.cursor()
-        cursor.execute("SELECT count(*) FROM collection_products WHERE domain=%s;", (spider.domain,))
-        ids = cursor.fetchall()
-        pnums = ids[0][0]
-        cursor.execute("UPDATE collection_bath_tasks SET quantity=%s, status=5 WHERE rid=%s;",
-                       (pnums, spider.task_id))
+        cursor.execute("""UPDATE collection_bath_tasks
+                                SET 
+                                  quantity = (SELECT COUNT(*) FROM collection_products WHERE task_id = %s),
+                                  lowest_price = (SELECT MIN(original_price) FROM collection_products WHERE task_id = %s),
+                                  highest_price = (SELECT MAX(original_price) FROM collection_products WHERE task_id = %s)
+                                WHERE rid = %s""",
+                       (spider.task_id, spider.task_id, spider.task_id, spider.task_id))
         conn.commit()
         cursor.close()
         conn.close()
