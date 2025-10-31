@@ -1,13 +1,16 @@
 import json
 import time
+
 from typing import Any
+
+from lxml import html
 
 import scrapy
 from scrapy.http import Response
 from scrapy_redis.spiders import RedisSpider
 
 from demo3_product.items import Demo3ProductItem
-
+from demo3_product.helpers import generate_variants_and_options
 
 class HouseofcbSpider(RedisSpider):
     name = "houseofcb"
@@ -57,7 +60,7 @@ class HouseofcbSpider(RedisSpider):
 
         for script in scripts:
             try:
-                script_data = json.loads(script.split(':', 1)[1][:-5])
+                script_data = json.loads(script.split(':', 1)[1][:-5].replace('\\"', '"').replace('\\\\', '\\'))
                 break
             except json.JSONDecodeError as e:
                 pass
@@ -67,86 +70,38 @@ class HouseofcbSpider(RedisSpider):
             self.logger.error(f"没找到数据: {response.url}")
             return
 
-        product_data = script_data['state']['loaderData']['routes/product/$slug']['product']
+        product_data = script_data[3]
 
-        title = product_data['name']
-        handle = product_data['slug']
-        description = product_data['description'].replace('\u003c', '<').replace('\u003e', '>')
+        title = product_data["productDataPreload"].get("title1", "") + product_data["productDataPreload"].get("title2", "")
+        handle = product_data['productDataPreload']['slugParam']
+        description_node = response.xpath('//div[@class=" hidden w-full lg:flex flex-col gap-[30px]"]').get()
 
-        colors = []
-        for attr in product_data['derivedAttributes']:
-            if attr['name'] == 'color':
-                colors = attr['values']
-                break
+        element = html.fromstring(description_node, create_parent=True)
+        for el in element.iter(): el.attrib.clear()
 
-        size_price_map = {}
+        description = html.tostring(element, encoding='unicode', method='html')
+        description = description.replace('\\r', '\r').replace('\\n', '\n').replace('\xa0', '&nbsp;')
 
-        for variant in product_data['variants']:
-            # 提取尺寸
-            size = variant['attributes']['size']
 
-            # 提取价格并转换为最终价格
-            price_info = variant['prices']
-            cent_amount = price_info['centAmount']
-            fractional_digits = price_info['fractionalDigits']
+        colors = product_data['productDataPreload']['colors']
+        sizes = [_["name"] for _ in  product_data['productDataPreload']['sizes']]
+        price = product_data['productDataPreload']['rawPriceCurrency']
 
-            # 转换为最终价格格式
-            final_price = cent_amount / (10 ** fractional_digits)
-            size_price_map[size] = final_price
+        variants, options = generate_variants_and_options(colors, sizes)
 
-        sizes = sorted(size_price_map.keys())
-        prices = [size_price_map[size] for size in sizes]
-
-        variants = []
-        __i = 0
-        for color in colors:
-            for size in sorted(size_price_map.keys()):
-                variant = {
-                    "title": f"{color} / {size}",
-                    "price": str(size_price_map[size]),
-                    "weght": "",
-                    "barcode": "",
-                    "curreny": "",
-                    "option1": color,
-                    "option2": size,
-                    "option3": None,
-                    "image_id": "",
-                    "position": __i + 1,
-                    "weght_unit": "",
-                    "compare_at_price": None
-                }
-                variants.append(variant)
-                __i += 1
-
-        price = float(min(prices))
         category = meta.get("tags") + [i["name"] for i in product_data["categories"]] + [i["slug"] for i in product_data["categories"]]
         category = list(set(category))
 
-        images = []
-        for i, variant in enumerate(product_data['variants']):
-            # 只从主变体（master variant）提取图片，避免重复
-            if variant.get('isMaster') or i == 0:  # 第一个变体或者标记为master的变体
-                for j, image_data in enumerate(variant['images']):
-                    image_info = {
-                        "id": f"image_{i}_{j}",  # 生成唯一ID
-                        "src": image_data['desktop']['url'],
-                        "position": j + 1  # 位置从1开始
-                    }
-                    images.append(image_info)
-                break  # 只需要从一个变体提取图片
+        images_links = product_data['productDataPreload']['media']['images']
+        images = {
+            {
+                "id": __i + 1,
+                "scr": "https://d166chel5lrjm5.cloudfront.net/images" + img["desktop"],
+                "position": __i + 1
+            } for __i, img in enumerate(images_links)
+        }
 
-        options = [
-            {
-                "name": "color",
-                "values": colors,
-                "position": 1
-            },
-            {
-                "name": "size",
-                "values": sizes,
-                "position": 2
-            }
-        ]
+
 
         item["task_id"] = self.task_id
         item["user_id"] = 3
