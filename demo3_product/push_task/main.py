@@ -5,7 +5,7 @@ import time
 
 
 #
-SPIDER_NAME = "bershka"
+SPIDER_NAME = "houseofcb"
 limittt = 100
 
 # PostgreSQL 配置

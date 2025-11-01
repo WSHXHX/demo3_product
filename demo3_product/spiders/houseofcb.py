@@ -60,8 +60,9 @@ class HouseofcbSpider(RedisSpider):
 
         for script in scripts:
             try:
-                script_data = json.loads(script.split(':', 1)[1][:-5].replace('\\"', '"').replace('\\\\', '\\'))
-                break
+                if 'productDataPreload' in script:
+                    script_data = json.loads(script.split(':', 1)[1][:-5].replace('\\"', '"').replace('\\\\', '\\'))
+                    break
             except json.JSONDecodeError as e:
                 pass
             except IndexError as e:
@@ -70,13 +71,19 @@ class HouseofcbSpider(RedisSpider):
             self.logger.error(f"没找到数据: {response.url}")
             return
 
-        product_data = script_data[3]
+        for s in script_data:
+            if type(s) == dict:
+                product_data = script_data[3]
+                break
+        else:
+            self.logger.warning(f"not data: {response.url}")
+            return
 
         title = product_data["productDataPreload"].get("title1", "") + product_data["productDataPreload"].get("title2", "")
-        handle = product_data['productDataPreload']['slugParam']
+        handle = product_data['slugParam']
         description_node = response.xpath('//div[@class=" hidden w-full lg:flex flex-col gap-[30px]"]').get()
 
-        element = html.fromstring(description_node, create_parent=True)
+        element = html.fragment_fromstring(description_node, create_parent=True)
         for el in element.iter(): el.attrib.clear()
 
         description = html.tostring(element, encoding='unicode', method='html')
@@ -84,22 +91,27 @@ class HouseofcbSpider(RedisSpider):
 
 
         colors = product_data['productDataPreload']['colors']
-        sizes = [_["name"] for _ in  product_data['productDataPreload']['sizes']]
+        ss = product_data['productDataPreload']['sizes']
+        if type(ss) == dict:
+            sizes = [sss["name"] for s in ss.values() for sss in s]
+        elif type(ss) == list:
+            sizes = [s["name"] for s in ss]
         price = product_data['productDataPreload']['rawPriceCurrency']
 
         variants, options = generate_variants_and_options(colors, sizes)
 
-        category = meta.get("tags") + [i["name"] for i in product_data["categories"]] + [i["slug"] for i in product_data["categories"]]
+        category = meta.get("tags")
         category = list(set(category))
 
         images_links = product_data['productDataPreload']['media']['images']
-        images = {
+        images = [
             {
                 "id": __i + 1,
                 "scr": "https://d166chel5lrjm5.cloudfront.net/images" + img["desktop"],
                 "position": __i + 1
-            } for __i, img in enumerate(images_links)
-        }
+            } for __i, img in enumerate(images_links) if img.get("desktop", "")
+        ]
+
 
 
 
