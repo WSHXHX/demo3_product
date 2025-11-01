@@ -89,7 +89,6 @@ def main():
             time.sleep(30)
             break
         push_to_redis(rows)
-        time.sleep(2)  # 防止数据库压力过大
         if limittt == 1:
             break
 

@@ -12,6 +12,15 @@ from scrapy_redis.spiders import RedisSpider
 from demo3_product.items import Demo3ProductItem
 from demo3_product.helpers import generate_variants_and_options
 
+
+def parsel_size(data):
+    if type(data) == dict:
+        for val in data.values():
+            return parsel_size(val)
+    elif type(data) == list:
+        return [s["name"] for s in data]
+
+
 class HouseofcbSpider(RedisSpider):
     name = "houseofcb"
     domain = "houseofcb.com"
@@ -91,17 +100,17 @@ class HouseofcbSpider(RedisSpider):
 
 
         colors = product_data['productDataPreload']['colors']
-        ss = product_data['productDataPreload']['sizes']
-        if type(ss) == dict:
-            sizes = [sss["name"] for s in ss.values() for sss in s]
-        elif type(ss) == list:
-            sizes = [s["name"] for s in ss]
+        sizes = parsel_size(product_data['productDataPreload']['sizes'])
+
         price = product_data['productDataPreload']['rawPriceCurrency']
 
         variants, options = generate_variants_and_options(colors, sizes)
 
-        category = meta.get("tags")
-        category = list(set(category))
+        if meta.get("tags", []):
+            category = meta.get("tags", [])
+            category = list(set(category))
+        else:
+            category = []
 
         images_links = product_data['productDataPreload']['media']['images']
         images = [
