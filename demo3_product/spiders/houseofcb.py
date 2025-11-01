@@ -116,7 +116,7 @@ class HouseofcbSpider(RedisSpider):
         images = [
             {
                 "id": __i + 1,
-                "scr": "https://d166chel5lrjm5.cloudfront.net/images" + img["desktop"],
+                "src": "https://d166chel5lrjm5.cloudfront.net/images" + img["desktop"],
                 "position": __i + 1
             } for __i, img in enumerate(images_links) if img.get("desktop", "")
         ]
