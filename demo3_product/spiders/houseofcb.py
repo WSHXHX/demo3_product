@@ -24,7 +24,7 @@ def parsel_size(data):
 class HouseofcbSpider(RedisSpider):
     name = "houseofcb"
     domain = "houseofcb.com"
-    task_id = 7
+    task_id = 9
     redis_key = f"{name}:start_urls"
     allowed_domains = ["houseofcb.com",]
 
