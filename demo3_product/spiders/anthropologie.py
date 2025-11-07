@@ -20,6 +20,12 @@ class AnthropologieSpider(RedisSpider):
     redis_key = f"{name}:start_urls"
     allowed_domains = ["anthropologie.com",]
 
+    custom_settings = {
+        "CONCURRENT_REQUESTS_PER_DOMAIN": 2,  # 限制每个域名并发为 4
+        "DOWNLOAD_DELAY": 5,  # 每个请求之间延迟 1 秒
+    }
+
+
     headers = {
         'accept':'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'accept-language':'zh-CN,zh;q=0.9',
