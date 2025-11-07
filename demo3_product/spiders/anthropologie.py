@@ -90,7 +90,7 @@ class AnthropologieSpider(RedisSpider):
 
         title = product["displayName"]
         handle = product["productSlug"]
-        description = product["longDescription"]
+        description = product.get("longDescription")
 
         primarySlice = res[key]["core"]["catalogData"]["skuInfo"]["primarySlice"]
         secondarySlice = res[key]["core"]["catalogData"]["skuInfo"]["secondarySlice"]
