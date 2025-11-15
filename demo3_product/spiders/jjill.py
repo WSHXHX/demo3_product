@@ -37,9 +37,7 @@ class JjillSpider(RedisBaseSpider):
         meta = response.meta
         item = Demo3ProductItem()
         nnow = int(time.time())
-        print("--",response)
-        with open(r"C:\Users\XXX\AppData\Roaming\JetBrains\PyCharm2025.2\scratches\scratch_1.html", "w", encoding="utf-8") as f:
-            f.write(response.text)
+
         script = response.xpath('//script[@id="__NEXT_DATA__"]/text()').get()
         if not script:
             script = response.xpath('//script[@id="__NEXT_DATA__"]/text()').get()

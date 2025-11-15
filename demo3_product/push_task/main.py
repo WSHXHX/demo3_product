@@ -6,7 +6,7 @@ import time
 
 #
 SPIDER_NAME = "jjill"
-limittt = 1
+limittt = 100
 
 # PostgreSQL 配置
 # POSTGRES_HOST = "107.150.40.2"
