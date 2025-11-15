@@ -54,13 +54,13 @@ class JjillSpider(RedisBaseSpider):
         varposition = 0
         for v in product_data["variants"]:
             varposition += 1
-            title = ""
-            if v.get("color", None): title = v["color"]["text"]
-            if v.get("size", None): title = title + " / " + v["size"]["text"]
-            if v.get("extendedSize", None): title = title + " / " + v["extendedSize"]["text"]
+            vt = ""
+            if v.get("color", None): vt = v["color"]["text"]
+            if v.get("size", None): vt = vt + " / " + v["size"]["text"]
+            if v.get("extendedSize", None): vt = vt + " / " + v["extendedSize"]["text"]
 
             variants.append({
-                "title": title,
+                "title": vt,
                 "price": v.get("price", "0.00"),
                 "weght": "",
                 "barcode": "",
