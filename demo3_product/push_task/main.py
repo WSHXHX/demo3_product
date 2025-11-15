@@ -5,8 +5,8 @@ import time
 
 
 #
-SPIDER_NAME = "anthropologie"
-limittt = 100
+SPIDER_NAME = "jjill"
+limittt = 1
 
 # PostgreSQL 配置
 # POSTGRES_HOST = "107.150.40.2"
