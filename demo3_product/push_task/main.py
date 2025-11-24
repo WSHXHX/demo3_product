@@ -1,27 +1,20 @@
-import psycopg2
-import redis
-import json
+import os
+import sys
 import time
+import json
 
+import redis
+import psycopg2
 
-#
-SPIDER_NAME = "jjill"
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from demo3_product.settings import POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_DBNAME, POSTGRES_USER, REDIS_HOST, REDIS_PORT, REDIS_PARAMS
+
+############### Task Config #########################
+
+SPIDER_NAME = "thereformation"
 limittt = 100
 
-# PostgreSQL 配置
-# POSTGRES_HOST = "107.150.40.2"
-# POSTGRES_PASSWORD = "S4ssbeXn6zeDs8ij"
-POSTGRES_HOST = "192.168.1.9"
-POSTGRES_PASSWORD = "0000"
-POSTGRES_DBNAME = "postgres"
-POSTGRES_USER = "postgres"
-
-# Redis 配置
-REDIS_HOST = "107.150.40.2"
-REDIS_PORT = 6379
-REDIS_PASSWORD = "pFKfclD2rU$3lib@6"
-REDIS_KEY = f"{SPIDER_NAME}:start_urls"
-
+#####################################################
 
 def read_line(limit=100):
     """
@@ -57,7 +50,7 @@ def push_to_redis(rows):
     """
     把任务推送到 Redis 队列（scrapy-redis）
     """
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PARAMS["password"])
     count = 0
 
     for id_, link, tags, referer in rows:
@@ -72,10 +65,10 @@ def push_to_redis(rows):
                 "Referer": referer or f"https://www.{SPIDER_NAME}.com/"
             }
         }
-        r.lpush(REDIS_KEY, json.dumps(task))
+        r.lpush(f"{SPIDER_NAME}:start_urls", json.dumps(task))
         count += 1
 
-    print(f"✅ 推送 {count} 条任务到 Redis 队列: {REDIS_KEY}")
+    print(f"✅ 推送 {count} 条任务到 Redis 队列: {f'{SPIDER_NAME}:start_urls'}")
 
 
 def main():
