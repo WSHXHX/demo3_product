@@ -47,7 +47,6 @@ DOWNLOAD_DELAY = 1
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-   # "demo3_product.middlewares.Demo3ProductDownloaderMiddleware": 543,
     'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
     'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': 400,
 }
@@ -61,12 +60,9 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    # "demo3_product.pipelines.Demo3ProductPipeline": 300,
-    # "demo3_product.pipelines.UpdateImagesPipline": 295,
     "demo3_product.pipelines.MySQLPipeline": 295,
     "demo3_product.pipelines.ElasticsearchPipeline": 300,
     "demo3_product.pipelines.UpdateTaskTableProductNumber": 305,
-    # "demo3_product.pipelines.PostgresUpdatePipeline": 305,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

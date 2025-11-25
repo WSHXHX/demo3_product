@@ -31,4 +31,5 @@ class Demo3ProductItem(scrapy.Item):
 
     mysqlid = scrapy.Field()
     postid = scrapy.Field()
+    update = scrapy.Field()
 

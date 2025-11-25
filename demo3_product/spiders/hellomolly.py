@@ -1,56 +1,49 @@
 import json
-import time
-import itertools
 from typing import Any
 
-import scrapy
 from scrapy.http import Response
-from scrapy_redis.spiders import RedisSpider
-
-from demo3_product.items import Demo3ProductItem
+from demo3_product.spiders.base_spider import RedisBaseSpider
 
 
-class HelloMollySpider(RedisSpider):
+class HelloMollySpider(RedisBaseSpider):
+
+    # Redis Spider 属性
     name = "hellomolly"
-    domain = "hellomolly.com"
-    task_id = 6
-    redis_key = "hellomolly:start_urls"
+    redis_key = f"{name}:start_urls"
     allowed_domains = ["www.hellomolly.com", "searchspring.io"]
+    custom_settings = {
+        "ITEM_PIPELINES": {"demo3_product.pipelines.CheckExistPipeline": 290,},
+        "DOWNLOADER_MIDDLEWARES": {
+            'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': 400,
+            'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': None,
+        }
+    }
 
-    def make_request_from_data(self, data):
-        """
-        scrapy-redis 默认只支持 URL 字符串
-        我们重写这个方法，让它能解析 JSON
-        """
-        if isinstance(data, bytes):
-            try:
-                data = data.decode("utf-8")
-            except UnicodeDecodeError:
-                # 不能 UTF-8 解码 → 当作普通 URL 处理
-                return scrapy.Request(url=data.decode("latin-1"), callback=self.parse)
+    # 自定义属性
+    cid = 1
+    user_id = 5
+    task_id = 6
+    domain = "hellomolly.com"
 
-        try:
-            task = json.loads(data)
-        except json.JSONDecodeError:
-            # 如果不是 JSON，就当成 URL 字符串
-            return scrapy.Request(url=data, callback=self.parse)
+    handle_httpstatus_list = [429]
+    headers = {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "accept-language": "en-US,en;q=0.9",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "sec-ch-ua": '"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1"
+    }
 
-        url = task.get("url")
-        headers = task.get("headers", {})
-        meta = task.get("meta", {})
 
-        return scrapy.Request(
-            url=url,
-            headers=headers,
-            meta=meta,
-            callback=self.parse
-        )
+    def make_product_item(self, response: Response, **kwargs: Any) -> Any:
 
-    def parse(self, response: Response, **kwargs: Any) -> Any:
-        meta = response.meta
-        item = Demo3ProductItem()
-        nnow = int(time.time())
-
+        print(response.text)
         script = response.xpath('//script[@id="__NEXT_DATA__"]/text()').get()
         if not script:
             self.logger.warning("找不到 __NEXT_DATA__ 脚本")
@@ -64,14 +57,10 @@ class HelloMollySpider(RedisSpider):
 
         product_data = script_data['props']['pageProps']['product']
 
-        title = product_data['title']
-        handle = product_data['handle']
-        description = product_data['descriptionHtml'].replace('\u003c', '<').replace('\u003e', '>')
         price = float(product_data['price']['amount'])
         if not price:
             price = float(product_data['compareAtPrice']['amount'])
 
-        category = product_data['tags']
 
         images = [
             {
@@ -105,25 +94,15 @@ class HelloMollySpider(RedisSpider):
             }
         ]
 
-        item["task_id"] = self.task_id
-        item["user_id"] = 5
-        item["cid"] = 1
-        item["domain"] = 'hellomolly.com'
-        item["title"] = title
-        item["handle"] = handle
-        item["description"] = description
-        item["vendor"] = 'hellomolly'
-        item["category"] = json.dumps(category)
-        item["original_price"] = float(price)
-        item["current_price"] = float(price)
-        item["images"] = json.dumps(images)
-        item["variants"] = json.dumps(variants)
-        item["tags"] = '[]'
-        item["created_at"] = nnow
-        item["updated_at"] = nnow
-        item["type"] = 1
-        item["platform"] = 4
-        item["options"] = json.dumps(options)
-        item["postid"] = meta.get("postid")
-        self.logger.info(f"✅ get product item: {title}")
-        yield item
+        item = {}
+        item["title"] = product_data['title']
+        item["handle"] = product_data['handle']
+        item["description"] = product_data['descriptionHtml'].replace('\u003c', '<').replace('\u003e', '>')
+        item["category"] = product_data['tags']
+        item["price"] = price
+        item["variants"] = variants
+        item["options"] = options
+
+        item['images'] = images
+
+        return item

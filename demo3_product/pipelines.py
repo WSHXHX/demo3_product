@@ -24,6 +24,58 @@ class Demo3ProductPipeline:
         return item
 
 
+class CheckExistPipeline:
+    def __init__(self, es_host, es_user, es_pass, index_name):
+        self.es_host = es_host
+        self.es_user = es_user
+        self.es_pass = es_pass
+        self.index_name = index_name
+        self.es = None
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        es_host = crawler.settings.get("ES_HOST")
+        es_user = crawler.settings.get("ES_USER")
+        es_pass = crawler.settings.get("ES_PASS")
+        index_name = crawler.settings.get("INDEX_NAME")
+
+        if not all([es_host, es_user, es_pass, index_name]):
+            raise NotConfigured("Elasticsearch settings are incomplete")
+
+        return cls(es_host, es_user, es_pass, index_name)
+
+    def open_spider(self, spider):
+        """连接 Elasticsearch"""
+        self.es = Elasticsearch(
+            [self.es_host],
+            basic_auth=(self.es_user, self.es_pass),
+            verify_certs=False,
+            ssl_show_warn=False,
+        )
+
+    def process_item(self, item, spider):
+        """检查 item 是否存在于 ES"""
+        item_id = item.get("mysqlid")
+
+        if not item_id:
+            return item    # item 没有 id 不检查
+
+        try:
+            # ES 查询文档是否存在
+            exists = self.es.exists(index=self.index_name, id=item_id)
+        except Exception as e:
+            spider.logger.error(f"ES exists check failed: {e}")
+            exists = False
+
+        # 设置 item['update']
+        if exists:
+            item["update"] = True
+        else:
+            item["update"] = False
+
+        return item
+
+
 class MySQLPipeline:
     def __init__(self, host, port, user, password, database):
         self.host = host
@@ -43,7 +95,6 @@ class MySQLPipeline:
         )
 
     def open_spider(self, spider):
-        # 连接数据库
         self.conn = pymysql.connect(
             host=self.host,
             port=self.port,
@@ -60,7 +111,47 @@ class MySQLPipeline:
 
     def process_item(self, item, spider):
         data = ItemAdapter(item).asdict()
-        # 示例：插入表 product_data，可根据你的表结构修改
+
+        # 如果需要更新
+        if data.get("update") is True:
+            update_sql = """
+            UPDATE collection_products
+            SET 
+                title=%s, handle=%s, description=%s, vendor=%s, category=%s,
+                original_price=%s, current_price=%s, images=%s, variants=%s,
+                tags=%s, updated_at=%s, type=%s, platform=%s, options=%s
+            WHERE id=%s
+            """
+
+            try:
+                self.cursor.execute(update_sql, (
+                    data.get("title"),
+                    data.get("handle"),
+                    data.get("description"),
+                    data.get("vendor"),
+                    data.get("category"),
+                    data.get("original_price"),
+                    data.get("current_price"),
+                    data.get("images"),
+                    data.get("variants"),
+                    data.get("tags"),
+                    data.get("updated_at"),
+                    data.get("type"),
+                    data.get("platform"),
+                    data.get("options"),
+                    data["mysqlid"]
+                ))
+                self.conn.commit()
+
+                spider.logger.info(f"🔄 Updated MySQL id {data['mysqlid']} ({data.get('title')})")
+
+            except Exception as e:
+                spider.logger.error(f"Update error: {e}")
+                self.conn.rollback()
+
+            return item
+
+        # 否则插入
         sql = """
         INSERT INTO collection_products (task_id, user_id, cid, domain, title, handle, description, vendor, category, original_price, current_price, images, variants, tags, created_at, updated_at, type, platform, options)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -89,15 +180,23 @@ class MySQLPipeline:
             ))
             self.conn.commit()
 
+            # 获取插入的主键 ID
             handle = data.get("handle")
             nnow = data.get("created_at")
-            self.cursor.execute(f"SELECT id FROM collection_products WHERE handle='{handle}' AND created_at='{nnow}'")
-            ids = self.cursor.fetchall()
-            item["mysqlid"] = ids[0][0]
-            spider.logger.info(f'✅ Insert item to MySQL, id: {item["mysqlid"]}, title: {data.get("title")}')
+
+            self.cursor.execute(
+                "SELECT id FROM collection_products WHERE handle=%s AND created_at=%s",
+                (handle, nnow)
+            )
+            ids = self.cursor.fetchone()
+            item["mysqlid"] = ids[0]
+
+            spider.logger.info(f"✅ Insert MySQL id {item['mysqlid']} ({data.get('title')})")
+
         except Exception as e:
             spider.logger.error(f"Insert error: {e}")
             self.conn.rollback()
+
         return item
 
 
@@ -108,7 +207,6 @@ class ElasticsearchPipeline:
         self.es_pass = es_pass
         self.index_name = index_name
         self.es = None
-        self.buffer = []
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -123,7 +221,6 @@ class ElasticsearchPipeline:
         return cls(es_host, es_user, es_pass, index_name)
 
     def open_spider(self, spider):
-        """连接 Elasticsearch"""
         self.es = Elasticsearch(
             [self.es_host],
             basic_auth=(self.es_user, self.es_pass),
@@ -132,6 +229,7 @@ class ElasticsearchPipeline:
         )
 
     def process_item(self, item, spider):
+
         doc = {
             "id": item["mysqlid"],
             "task_id": item["task_id"],
@@ -150,16 +248,30 @@ class ElasticsearchPipeline:
             "type": item["type"],
             "platform": item["platform"]
         }
-        self.es.index(index=self.index_name, id=doc["id"], document=doc)
+
+        # 更新模式
+        if item.get("update") is True:
+            try:
+                self.es.update(
+                    index=self.index_name,
+                    id=doc["id"],
+                    doc={"doc": doc},
+                    doc_as_upsert=True  # 如果不存在就创建
+                )
+                spider.logger.info(f"🔄 Updated ES id {doc['id']} ({doc['title']})")
+            except Exception as e:
+                spider.logger.error(f"ES update error: {e}")
+
+            return item
+
+        # 插入模式（默认）
+        try:
+            self.es.index(index=self.index_name, id=doc["id"], document=doc)
+            spider.logger.info(f"🆕 Insert ES id {doc['id']} ({doc['title']})")
+        except Exception as e:
+            spider.logger.error(f"ES insert error: {e}")
+
         return item
-
-    def flush(self):
-        if self.buffer:
-            bulk(self.es, self.buffer)
-            self.buffer.clear()
-
-    def close_spider(self, spider):
-        self.flush()
 
 
 class PostgresUpdatePipeline:
