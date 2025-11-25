@@ -36,13 +36,15 @@ class ShowpoSpider(RedisBaseSpider):
     # 自定义属性
     cid = 1
     user_id = 3
-    task_id = 20
+    task_id = 24
     domain = "showpo.com"
+
+    custom_settings = {"ITEM_PIPELINES": {"demo3_product.pipelines.CheckExistPipeline": 290, },}
 
 
     def make_product_item(self, response, **kwargs):
         meta = response.meta
-        description = response.xpath('//div[contains(@class, "pdp__product-description")]').get()
+        description = response.xpath('//div[contains(@class, "shopify-html-content")]').get()
         price = response.xpath('//div[@data-testid="product-price"]//span/text()').getall()
         price = get_price(price)
 
