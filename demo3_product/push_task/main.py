@@ -11,8 +11,8 @@ from demo3_product.settings import POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_DB
 
 ############### Task Config #########################
 
-SPIDER_NAME = "showpo"
-limittt = 100
+SPIDER_NAME = "hellomolly"
+limittt = 1
 
 #####################################################
 
