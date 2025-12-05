@@ -30,6 +30,7 @@ def get_price(price_list):
     for p in price_list:
         try: pl.append(float(p.replace("$", "")))
         except: pass
+    if not pl: return 88.8
     return min(pl)
 
 def make_title(title_list):

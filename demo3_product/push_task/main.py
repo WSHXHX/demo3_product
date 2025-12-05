@@ -12,7 +12,7 @@ from demo3_product.settings import POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_DB
 ############### Task Config #########################
 
 SPIDER_NAME = "revolve"
-limittt = 1
+limittt = 100
 
 #####################################################
 

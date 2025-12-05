@@ -24,6 +24,7 @@ def get_price(price_list):
     for p in price_list:
         try: pl.append(float(p))
         except: pass
+    if not pl: return 88.8
     return min(pl)
 
 class ShowpoSpider(RedisBaseSpider):
