@@ -6,17 +6,25 @@ from demo3_product.spiders.base_spider import RedisBaseSpider
 
 
 class HelloMollySpider(RedisBaseSpider):
-
     # Redis Spider 属性
     name = "hellomolly"
     redis_key = f"{name}:start_urls"
     allowed_domains = ["www.hellomolly.com", "searchspring.io"]
     custom_settings = {
-        "ITEM_PIPELINES": {"demo3_product.pipelines.CheckExistPipeline": 290,},
+        "ITEM_PIPELINES": {
+            "demo3_product.pipelines.CheckExistPipeline": 290,
+            "demo3_product.pipelines.MySQLPipeline": 295,
+            "demo3_product.pipelines.ElasticsearchPipeline": 300,
+            "demo3_product.pipelines.UpdateTaskTableProductNumber": 305,
+        },
         "CONCURRENT_REQUESTS": 2,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 2,
         "COOKIES_ENABLED": True,
         "RETRY_ENABLED": False,
+        "DOWNLOADER_MIDDLEWARES": {
+            'demo3_product.middlewares.DecompressionMiddleware': 543,
+            'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware': None,
+        },
     }
 
     # 自定义属性
@@ -48,7 +56,6 @@ class HelloMollySpider(RedisBaseSpider):
         price = float(product_data['price']['amount'])
         if not price:
             price = float(product_data['compareAtPrice']['amount'])
-
 
         images = [
             {

@@ -1,3 +1,4 @@
+import re
 from itertools import product
 from lxml import html
 
@@ -73,7 +74,7 @@ def clean_html_structure(html_string: str) -> str:
     if not html_string: return ""
 
     # Parse HTML fragment
-    try: node = html.fromstring(html_string)
+    try: node = html.fragment_fromstring(html_string, create_parent=True)
     except Exception: return html_string  # invalid html, return original
 
     def strip_attributes(element):
@@ -86,4 +87,5 @@ def clean_html_structure(html_string: str) -> str:
     strip_attributes(node)
 
     # Return cleaned HTML
-    return html.tostring(node, encoding="unicode")
+    res = "".join([html.tostring(child, encoding="unicode") for child in node])
+    return re.sub(r'>[\n ]*<', '><', res)
