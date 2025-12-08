@@ -102,7 +102,7 @@ class RedisBaseSpider(RedisSpider):
         item["platform"] = 4
         item["options"] = self.to_str(product_item["options"])
         item["postid"] = meta.get("postid")
-        self.logger.info(f"🕷 get product item: {product_item['title'].strip()}")
+        self.logger.info(f" ➜ [F] Fetch product item: {product_item['title'].strip()}")
         return item
 
     def make_product_item(self, response, **kwargs):

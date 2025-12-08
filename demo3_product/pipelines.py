@@ -143,7 +143,7 @@ class MySQLPipeline:
                 ))
                 self.conn.commit()
 
-                spider.logger.info(f"🔄 Updated MySQL id {data['mysqlid']} ({data.get('title')})")
+                spider.logger.info(f" ✔ [M] MySQL Updated id {data['mysqlid']} ({data.get('title')})")
 
             except Exception as e:
                 spider.logger.error(f"Update error: {e}")
@@ -191,7 +191,7 @@ class MySQLPipeline:
             ids = self.cursor.fetchone()
             item["mysqlid"] = ids[0]
 
-            spider.logger.info(f"🐬 Insert MySQL id {item['mysqlid']} ({data.get('title')})")
+            spider.logger.info(f" ✔ [M] MySQL Insert id {item['mysqlid']} ({data.get('title')})")
 
         except Exception as e:
             spider.logger.error(f"Insert error: {e}")
@@ -258,7 +258,7 @@ class ElasticsearchPipeline:
                     doc={"doc": doc},
                     doc_as_upsert=True  # 如果不存在就创建
                 )
-                spider.logger.info(f"🔄 Updated ES id {doc['id']} ({doc['title']})")
+                spider.logger.info(f" ▲ [E] ES Updated id {doc['id']} ({doc['title']})")
             except Exception as e:
                 spider.logger.error(f"ES update error: {e}")
 
@@ -267,7 +267,7 @@ class ElasticsearchPipeline:
         # 插入模式（默认）
         try:
             self.es.index(index=self.index_name, id=doc["id"], document=doc)
-            spider.logger.info(f"🆕 Insert ES id {doc['id']} ({doc['title']})")
+            spider.logger.info(f" ▲ [E] ES Insert id {doc['id']} ({doc['title']})")
         except Exception as e:
             spider.logger.error(f"ES insert error: {e}")
 
