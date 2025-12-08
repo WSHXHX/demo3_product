@@ -89,9 +89,11 @@ class RevolveSpider(RedisBaseSpider):
         images = response.xpath('//div[@id="model-1-images"]/button/@data-image').getall()
         images = make_img_list([i.split("?")[0] for i in images])
 
+        product_path = urlparse(response.url).path
+
         item = {}
         item["title"] = make_title(title_list)
-        item["handle"] = slugify(item["title"])
+        item["handle"] = slugify(product_path)
         item["category"] = meta.get("tags", [])
         item["price"] = price
         item["variants"] = variants
