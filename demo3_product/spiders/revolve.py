@@ -52,7 +52,7 @@ class RevolveSpider(RedisBaseSpider):
     task_id = 27
     domain = "revolve.com"
 
-    # custom_settings = {"ITEM_PIPELINES": {"demo3_product.pipelines.CheckExistPipeline": 290, },}
+    custom_settings = {"ITEM_PIPELINES": {"demo3_product.pipelines.CheckExistPipeline": 290, },}
     headers = {
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0',
         'accept_language': 'en-US,en;q=0.9',

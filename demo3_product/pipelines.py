@@ -191,7 +191,7 @@ class MySQLPipeline:
             ids = self.cursor.fetchone()
             item["mysqlid"] = ids[0]
 
-            spider.logger.info(f"✅ Insert MySQL id {item['mysqlid']} ({data.get('title')})")
+            spider.logger.info(f"🐬 Insert MySQL id {item['mysqlid']} ({data.get('title')})")
 
         except Exception as e:
             spider.logger.error(f"Insert error: {e}")
