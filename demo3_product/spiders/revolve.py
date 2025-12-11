@@ -92,6 +92,7 @@ class RevolveSpider(RedisBaseSpider):
 
 
         images = response.xpath('//div[@id="model-1-images"]/button/@data-image').getall()
+        images += response.xpath('//div[@id="model-1-images"]/div[@class="u-relative"]//button/img/@src').getall()
         images = make_img_list([i.split("?")[0] for i in images])
 
         product_path = urlparse(response.url).path
