@@ -60,6 +60,7 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
+    "demo3_product.pipelines.CheckExistPipeline": 290,
     "demo3_product.pipelines.MySQLPipeline": 295,
     "demo3_product.pipelines.ElasticsearchPipeline": 300,
     "demo3_product.pipelines.UpdateTaskTableProductNumber": 305,

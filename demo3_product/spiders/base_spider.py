@@ -42,13 +42,18 @@ class RedisBaseSpider(RedisSpider):
                 data = data.decode("utf-8")
             except UnicodeDecodeError:
                 # 不能 UTF-8 解码 → 当作普通 URL 处理
-                return scrapy.Request(url=data.decode("latin-1"), callback=self.parse, headers=class_headers)
+                return scrapy.Request(
+                    url=data.decode("latin-1"),
+                    callback=self.parse,
+                    headers=class_headers,
+                    dont_filter=True,
+                )
 
         try:
             task = json.loads(data)
         except json.JSONDecodeError:
             # 如果不是 JSON，就当成 URL 字符串
-            return scrapy.Request(url=data, callback=self.parse, headers=class_headers)
+            return scrapy.Request(url=data, callback=self.parse, headers=class_headers, dont_filter=True,)
 
         url = task.get("url")
         # task 自己的 headers
@@ -63,7 +68,8 @@ class RedisBaseSpider(RedisSpider):
             url=url,
             headers=headers,
             meta=meta,
-            callback=self.parse
+            callback=self.parse,
+            dont_filter=True,
         )
 
     def to_str(self, item):
@@ -81,27 +87,30 @@ class RedisBaseSpider(RedisSpider):
         nnow = int(time.time())
 
         product_item = self.make_product_item(response, **kwargs)
-
+        item["type"] = 1
+        item["tags"] = '[]'
+        item["platform"] = 4
+        item["cid"] = self.cid
+        item["created_at"] = nnow
+        item["updated_at"] = nnow
+        item["vendor"] = self.name
+        item["domain"] = self.domain
         item["task_id"] = self.task_id
         item["user_id"] = self.user_id
-        item["cid"] = self.cid
-        item["domain"] = self.domain
+
+
         item["title"] = product_item["title"].strip()
         item["handle"] = product_item["handle"].strip()
         item["description"] = product_item["description"]
-        item["vendor"] = self.name
         item["category"] = self.to_str(product_item["category"])
         item["original_price"] = float(product_item["price"])
         item["current_price"] = float(product_item["price"])
         item["images"] = self.to_str(product_item["images"])
         item["variants"] = self.to_str(product_item["variants"])
-        item["tags"] = '[]'
-        item["created_at"] = nnow
-        item["updated_at"] = nnow
-        item["type"] = 1
-        item["platform"] = 4
         item["options"] = self.to_str(product_item["options"])
+
         item["postid"] = meta.get("postid")
+
         self.logger.info(f" ➜ [F] Fetch product item: {product_item['title'].strip()}")
         return item
 

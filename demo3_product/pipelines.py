@@ -10,7 +10,6 @@ import urllib3
 import pymysql
 import psycopg2
 from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
 
 from scrapy.exceptions import NotConfigured
 
@@ -23,6 +22,30 @@ class Demo3ProductPipeline:
     def process_item(self, item, spider):
         return item
 
+
+class ItemTypeToMySQL:
+    def process_item(self, item, spider):
+
+
+        if type(item["category"]) == list:
+            item["category"] = ",".join(item["category"])
+
+        if type(item["original_price"]) == str:
+            item["original_price"] = float(item["original_price"])
+
+        if type(item["current_price"]) == str:
+            item["current_price"] = float(item["current_price"])
+
+        if type(item["images"]) == list:
+            item["images"] = json.dumps(item["images"], ensure_ascii=False)
+
+        if type(item["variants"]) == list:
+            item["variants"] = json.dumps(item["variants"], ensure_ascii=False)
+
+        if type(item["options"]) == list:
+            item["options"] = json.dumps(item["options"], ensure_ascii=False)
+
+        return item
 
 class CheckExistPipeline:
     def __init__(self, es_host, es_user, es_pass, index_name):
@@ -55,24 +78,28 @@ class CheckExistPipeline:
 
     def process_item(self, item, spider):
         """检查 item 是否存在于 ES"""
-        item_id = item.get("mysqlid")
-
-        if not item_id:
-            return item    # item 没有 id 不检查
+        task_id = item.get("task_id")
+        handle = item.get("handle")
 
         try:
             # ES 查询文档是否存在
-            exists = self.es.exists(index=self.index_name, id=item_id)
+            query = {"bool": {"must": [{"term": {"task_id": task_id}},{"term": {"handle.keyword": handle}}]}}
+            results = self.es.search(
+                index=self.index_name,
+                query=query,
+                size=1,
+                from_=0
+            )
+            print(results)
+            hits = results["hits"]["hits"]
+            print(hits)
+            if hits:
+                mid = hits[0]["_id"]
+                item["update"] = True
+                item["mysqlid"] = mid
+
         except Exception as e:
             spider.logger.error(f"ES exists check failed: {e}")
-            exists = False
-
-        # 设置 item['update']
-        if exists:
-            item["update"] = True
-        else:
-            item["update"] = False
-
         return item
 
 
@@ -111,38 +138,48 @@ class MySQLPipeline:
 
     def process_item(self, item, spider):
         data = ItemAdapter(item).asdict()
+        self.conn.ping(reconnect=True)
 
         # 如果需要更新
-        if data.get("update") is True:
-            update_sql = """
-            UPDATE collection_products
-            SET 
-                title=%s, handle=%s, description=%s, vendor=%s, category=%s,
-                original_price=%s, current_price=%s, images=%s, variants=%s,
-                tags=%s, updated_at=%s, type=%s, platform=%s, options=%s
-            WHERE id=%s
-            """
+        if data.get("update", False):
+            select_sql = "SELECT category FROM collection_products WHERE id=%s"
+            update_sql = "UPDATE collection_products SET category=%s WHERE id=%s"
 
             try:
-                self.cursor.execute(update_sql, (
-                    data.get("title"),
-                    data.get("handle"),
-                    data.get("description"),
-                    data.get("vendor"),
-                    data.get("category"),
-                    data.get("original_price"),
-                    data.get("current_price"),
-                    data.get("images"),
-                    data.get("variants"),
-                    data.get("tags"),
-                    data.get("updated_at"),
-                    data.get("type"),
-                    data.get("platform"),
-                    data.get("options"),
-                    data["mysqlid"]
-                ))
-                self.conn.commit()
+                self.cursor.execute(select_sql, (data["mysqlid"],))
+                res = self.cursor.fetchone()
+                new_tags = json.loads(data["category"]) if isinstance(data["category"], str) else data
+                if res:
+                    old_category = res[0]
+                    old_tags = json.loads(old_category) if old_category else []
+                    merged_tags = list(set(new_tags + old_tags))
+                    if sorted(old_tags) == sorted(merged_tags):
+                        spider.logger.info(f" ⊙ [M] MySQL No Update Needed id {data['mysqlid']} ({data.get('title')})")
+                        return item
+                else:
+                    merged_tags = new_tags
 
+                self.cursor.execute(update_sql, (json.dumps(merged_tags, ensure_ascii=False), data["mysqlid"]))
+                self.conn.commit()
+                spider.logger.info(f" ✔ [M] MySQL Updated id {data['mysqlid']} ({data.get('title')})")
+
+            except pymysql.err.InterfaceError as e:
+                spider.logger.warning(f"MySQL InterfaceError: {e}")
+                self.cursor.execute(select_sql, (data["mysqlid"],))
+                res = self.cursor.fetchone()
+                new_tags = json.loads(data["category"]) if isinstance(data["category"], str) else data
+                if res:
+                    old_category = res[0]
+                    old_tags = json.loads(old_category) if old_category else []
+                    merged_tags = list(set(new_tags + old_tags))
+                    if sorted(old_tags) == sorted(merged_tags):
+                        spider.logger.info(f" ⊙ [M] MySQL No Update Needed id {data['mysqlid']} ({data.get('title')})")
+                        return item
+                else:
+                    merged_tags = new_tags
+
+                self.cursor.execute(update_sql, (json.dumps(merged_tags, ensure_ascii=False), data["mysqlid"]))
+                self.conn.commit()
                 spider.logger.info(f" ✔ [M] MySQL Updated id {data['mysqlid']} ({data.get('title')})")
 
             except Exception as e:
@@ -181,17 +218,40 @@ class MySQLPipeline:
             self.conn.commit()
 
             # 获取插入的主键 ID
-            handle = data.get("handle")
-            nnow = data.get("created_at")
-
-            self.cursor.execute(
-                "SELECT id FROM collection_products WHERE handle=%s AND created_at=%s",
-                (handle, nnow)
-            )
-            ids = self.cursor.fetchone()
-            item["mysqlid"] = ids[0]
-
+            item["mysqlid"] = self.cursor.lastrowid
             spider.logger.info(f" ✔ [M] MySQL Insert id {item['mysqlid']} ({data.get('title')})")
+
+        except pymysql.err.InterfaceError as e:
+            spider.logger.warning(f"MySQL InterfaceError during insert: {e}, attempting reconnect...")
+            self.reconnect()
+            try:
+                self.cursor.execute(sql, (
+                    data.get("task_id"),
+                    data.get("user_id"),
+                    data.get("cid"),
+                    data.get("domain"),
+                    data.get("title"),
+                    data.get("handle"),
+                    data.get("description"),
+                    data.get("vendor"),
+                    data.get("category"),
+                    data.get("original_price"),
+                    data.get("current_price"),
+                    data.get("images"),
+                    data.get("variants"),
+                    data.get("tags"),
+                    data.get("created_at"),
+                    data.get("updated_at"),
+                    data.get("type"),
+                    data.get("platform"),
+                    data.get("options"),
+                ))
+                self.conn.commit()
+                item["mysqlid"] = self.cursor.lastrowid
+                spider.logger.info(f" ✔ [M] MySQL Insert (after reconnect) id {item['mysqlid']} ({data.get('title')})")
+            except Exception as retry_error:
+                spider.logger.error(f"Insert error after reconnect: {retry_error}")
+                self.conn.rollback()
 
         except Exception as e:
             spider.logger.error(f"Insert error: {e}")
@@ -199,6 +259,24 @@ class MySQLPipeline:
 
         return item
 
+    def reconnect(self):
+        """重新连接数据库"""
+        try:
+            if self.cursor:
+                self.cursor.close()
+            if self.conn:
+                self.conn.close()
+        except:
+            pass
+
+        self.conn = pymysql.connect(
+            host=self.host,
+            user=self.user,
+            password=self.password,
+            database=self.database,
+            charset='utf8mb4',
+        )
+        self.cursor = self.conn.cursor()
 
 class ElasticsearchPipeline:
     def __init__(self, es_host, es_user, es_pass, index_name):
