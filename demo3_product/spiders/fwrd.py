@@ -166,3 +166,9 @@ class FwrdSpider(RedisSpider):
         item["options"] = self.to_str(options)
 
         yield item
+
+    def to_str(self, item):
+        if type(item) == str:
+            return item
+        else:
+            return json.dumps(item)
