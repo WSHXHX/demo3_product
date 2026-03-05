@@ -121,7 +121,7 @@ class FwrdSpider(RedisSpider):
 
         title = response.xpath('//div[@class="pdp__brand-desc u-capitalize"]/text()').get()
         handle = response.url.split('/')[3]
-        price = response.xpath('//span[@class="price__retail" or @class="price__sale"]/text()').get()
+        price = response.xpath('//span[@class="price__retail" or @class="price__sale"]/text()').get().replace(',', '')
 
         description = response.xpath('//div[@id="pdp-details"]').get()
 
