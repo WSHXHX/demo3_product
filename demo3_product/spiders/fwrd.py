@@ -25,6 +25,27 @@ class FwrdSpider(RedisSpider):
         'sec-fetch-dest': 'empty',
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'cross-site',
+        'sec-fetch-user': '?1',
+    }
+    cheaders = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0',
+        'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'none',
+        'sec-fetch-user': '?1',
+    }
+    pheaders = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0',
+        'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-user': '?1',
     }
 
     def make_request_from_data(self, data):
@@ -56,7 +77,7 @@ class FwrdSpider(RedisSpider):
         for r in rrr:
             yield scrapy.Request(
                 url=r,
-                headers=self.headers,
+                headers=self.cheaders,
                 callback=self.parse_page,
                 dont_filter=True,
             )
@@ -76,7 +97,7 @@ class FwrdSpider(RedisSpider):
         for products_href in products_hrefs:
             yield scrapy.Request(
                 url="https://www.fwrd.com" + products_href,
-                headers=self.headers,
+                headers=self.pheaders,
                 callback=self.parse_product,
                 meta={"tags": tags},
             )
@@ -87,7 +108,7 @@ class FwrdSpider(RedisSpider):
 
         yield scrapy.Request(
             url="https://www.fwrd.com" + lazy_load_url,
-            headers=self.headers,
+            headers=self.cheaders,
             callback=self.parse_page,
             dont_filter=True,
             meta={"tags": tags},
