@@ -94,6 +94,7 @@ class FwrdSpider(RedisSpider):
 
 
         products_hrefs = response.xpath('//a[@class="product-grids__link product__image-alt-trigger js-plp-pdp-link u-relative"]/@href').getall()
+
         for products_href in products_hrefs:
             yield scrapy.Request(
                 url="https://www.fwrd.com" + products_href,
@@ -105,14 +106,14 @@ class FwrdSpider(RedisSpider):
 
         lazy_load_url = response.xpath(
             '//ul[@class="g g--collapse n-block-grid--3 product-grids js-plp-lazy-load"]/@data-lazy-load-url').get()
-
-        yield scrapy.Request(
-            url="https://www.fwrd.com" + lazy_load_url,
-            headers=self.cheaders,
-            callback=self.parse_page,
-            dont_filter=True,
-            meta={"tags": tags},
-        )
+        if lazy_load_url:
+            yield scrapy.Request(
+                url="https://www.fwrd.com" + lazy_load_url,
+                headers=self.cheaders,
+                callback=self.parse_page,
+                dont_filter=True,
+                meta={"tags": tags},
+            )
 
     def parse_product(self, response, **kwargs):
         meta = response.meta
