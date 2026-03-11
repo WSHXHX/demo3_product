@@ -3,7 +3,7 @@ import time
 import itertools
 
 
-import psycopg2
+
 from lxml import html
 
 import scrapy
@@ -16,31 +16,7 @@ from demo3_product.items import Demo3ProductItem
 
 
 def read_line():
-    conn = psycopg2.connect(
-        host="192.168.1.32",
-        dbname="postgres",
-        user="postgres",
-        password="0000"
-    )
-    conn.autocommit = False
-    cur = conn.cursor()
-
-    cur.execute("""
-                UPDATE spider_temp
-                SET status = 10
-                WHERE id IN (
-                    SELECT id FROM spider_temp
-                    WHERE status = 1
-                    LIMIT 100
-                    FOR UPDATE SKIP LOCKED
-                )
-                RETURNING id, link, tags, referer;
-            """)
-    rows = cur.fetchall()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return rows
+    return []
 
 
 class FashionnovaSpider(scrapy.Spider):

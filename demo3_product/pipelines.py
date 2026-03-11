@@ -8,7 +8,6 @@ import json
 import urllib3
 
 import pymysql
-import psycopg2
 from elasticsearch import Elasticsearch
 
 from scrapy.exceptions import NotConfigured
@@ -350,64 +349,6 @@ class ElasticsearchPipeline:
             spider.logger.error(f"ES insert error: {e}")
 
         return item
-
-
-class PostgresUpdatePipeline:
-    def __init__(self, host, dbname, user, password):
-        self.host = host
-        self.dbname = dbname
-        self.user = user
-        self.password = password
-        self.conn = None
-        self.cursor = None
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        host = crawler.settings.get("POSTGRES_HOST")
-        dbname = crawler.settings.get("POSTGRES_DBNAME")
-        user = crawler.settings.get("POSTGRES_USER")
-        password = crawler.settings.get("POSTGRES_PASSWORD")
-
-        if not all([host, dbname, user, password]):
-            raise NotConfigured("PostgreSQL settings are incomplete")
-
-        return cls(host, dbname, user, password)
-
-    def open_spider(self, spider):
-        """在爬虫启动时连接数据库"""
-        self.conn = psycopg2.connect(
-            host=self.host,
-            dbname=self.dbname,
-            user=self.user,
-            password=self.password,
-        )
-        self.cursor = self.conn.cursor()
-
-    def process_item(self, item, spider):
-        """根据 item['postid'] 更新状态"""
-        postid = item.get("postid")
-        if postid:
-            try:
-                self.cursor.execute(
-                    "UPDATE public.spider_temp SET status = 2 WHERE id = %s;",
-                    (postid,)
-                )
-                self.conn.commit()
-                spider.logger.info(f"✅ Postgres 更新成功: id={postid}")
-            except Exception as e:
-                self.conn.rollback()
-                spider.logger.error(f"❌ Postgres 更新失败: id={postid}, error={e}")
-        else:
-            spider.logger.warning("⚠️ Item 没有 postid，跳过 Postgres 更新")
-
-        return item  # 一定要返回 item 让后续管道能继续用
-
-    def close_spider(self, spider):
-        """关闭数据库连接"""
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
 
 
 class UpdateImagesPipline:
