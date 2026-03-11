@@ -137,6 +137,14 @@ REDIS_PARAMS = {
 # 可选：防止爬虫重复抓取时清空队列
 SCHEDULER_FLUSH_ON_START = False
 
+# 下载器超时时间（默认180秒）
+DOWNLOAD_TIMEOUT = 15  # 设置为15秒
+
+# DNS解析超时（默认60秒）
+DNS_TIMEOUT = 30
+
+# 连接超时（默认180秒）
+CONNECT_TIMEOUT = 30
 
 # USER_AGENTS_LIST = [
 #     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
