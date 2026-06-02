@@ -3,12 +3,12 @@ import time
 import itertools
 
 import scrapy
-from scrapy_redis.spiders import RedisSpider
+from lxml import etree
 
-from demo3_product.items import Demo3ProductItem
+from ..items import Demo3ProductItem
 
 
-class LucyintheskySpider(RedisSpider):
+class LucyintheskySpider(scrapy.Spider):
     name = "lucyinthesky"
     domain = "lucyinthesky.com"
     task_id = 5
@@ -16,34 +16,20 @@ class LucyintheskySpider(RedisSpider):
 
     allowed_domains = ["www.lucyinthesky.com", "media-img.lucyinthesky.com", "api.lucyinthesky.com"]
 
-    def make_request_from_data(self, data):
-        """
-        scrapy-redis 默认只支持 URL 字符串
-        我们重写这个方法，让它能解析 JSON
-        """
-        if isinstance(data, bytes):
-            try:
-                data = data.decode("utf-8")
-            except UnicodeDecodeError:
-                # 不能 UTF-8 解码 → 当作普通 URL 处理
-                return scrapy.Request(url=data.decode("latin-1"), callback=self.parse)
+    def start_requests(self):
+        with open(r'C:\Users\XXX\Desktop\mypy\Amazon\Amazon\lucy.html', encoding='utf-8') as f:
+            text = f.read()
+        tree = etree.HTML(text)
 
-        try:
-            task = json.loads(data)
-        except json.JSONDecodeError:
-            # 如果不是 JSON，就当成 URL 字符串
-            return scrapy.Request(url=data, callback=self.parse)
+        href  = tree.xpath('//a[@class="d-flex position-relative flzmyw6 f1rm2wf3 f1gd75sv"]/@href')
 
-        url = task.get("url")
-        headers = task.get("headers", {})
-        meta = task.get("meta", {})
+        for h in href:
+            yield scrapy.Request(
+                url="https://www.lucyinthesky.com" + h,
+                callback=self.parse,
+                meta={"tags": ["Summer Dresses", "summer-dresses"]}
+            )
 
-        return scrapy.Request(
-            url=url,
-            headers=headers,
-            meta=meta,
-            callback=self.parse
-        )
 
     def parse(self, response, **kwargs):
         meta = response.meta
@@ -61,7 +47,7 @@ class LucyintheskySpider(RedisSpider):
             self.logger.error(f"JSON 解析失败: {e}")
             return
 
-        product_data = script_data['props']['pageProps']['store']['cueoq7nz']
+        product_data = script_data['props']['pageProps']['store']['1ziaih2d']
 
         title = product_data['name']
         description = product_data['description'].replace('\u003c', '<').replace('\u003e', '>')
@@ -78,7 +64,7 @@ class LucyintheskySpider(RedisSpider):
 
 
         colors_set = set()
-        product_color = script_data['props']['pageProps']['store']['4cro23qr']
+        product_color = script_data['props']['pageProps']['store']['12pc91pg']
         for color_item in product_color:
             for col in color_item['colors']:
                 cn = col['name']
